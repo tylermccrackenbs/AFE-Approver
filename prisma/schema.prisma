@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication and authorization
+model User {
+  id             String   @id @default(uuid()) @map("user_id") @db.UniqueIdentifier
+  name           String   @db.NVarChar(255)
+  email          String   @unique @db.NVarChar(255)
+  title          String?  @db.NVarChar(100) // Job title (e.g., "Operations Manager")
+  role           String   @default("VIEWER") @db.NVarChar(20) // ADMIN, SIGNER, VIEWER
+  azureAdId      String?  @map("azure_ad_id") @db.NVarChar(255)
+  signatureImage String?  @map("signature_image") @db.NVarChar(Max) // Base64 encoded signature PNG
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  createdAfes Afe[]       @relation("AfeCreator")
+  signerSlots AfeSigner[]
+  auditLogs   AuditLog[]
+
+  @@map("users")
+}
+
+// AFE (Authorization for Expenditure) document
+model Afe {
+  id             String   @id @default(uuid()) @map("afe_id") @db.UniqueIdentifier
+  afeName        String   @map("afe_name") @db.NVarChar(255)
+  afeNumber      String?  @map("afe_number") @db.NVarChar(100)
+  originalPdfUrl String   @map("original_pdf_url") @db.NVarChar(500)
+  finalPdfUrl    String?  @map("final_pdf_url") @db.NVarChar(500)
+  status         String   @default("DRAFT") @db.NVarChar(20) // DRAFT, PENDING, PARTIALLY_SIGNED, FULLY_SIGNED, REJECTED
+  createdById    String   @map("created_by") @db.UniqueIdentifier
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  createdBy User        @relation("AfeCreator", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  signers   AfeSigner[]
+
+  @@map("afes")
+}
+
+// AFE Signers - tracks each signer's position and status in the signing chain
+model AfeSigner {
+  id             String    @id @default(uuid()) @map("afe_signer_id") @db.UniqueIdentifier
+  afeId          String    @map("afe_id") @db.UniqueIdentifier
+  userId         String    @map("user_id") @db.UniqueIdentifier
+  signingOrder   Int       @map("signing_order")
+  status         String    @default("PENDING") @db.NVarChar(20) // PENDING, ACTIVE, SIGNED, REJECTED, SKIPPED
+  signedAt       DateTime? @map("signed_at")
+  signatureImage String?   @map("signature_image") @db.NVarChar(Max) // Base64 signature PNG used for this signing
+  signatureX     Float?    @map("signature_x") // X coordinate for signature box on PDF (bottom-left)
+  signatureY     Float?    @map("signature_y") // Y coordinate for signature box on PDF (bottom-left)
+  signatureWidth Float?    @map("signature_width") // Width of signature box on PDF
+  signatureHeight Float?   @map("signature_height") // Height of signature box on PDF
+  titleX         Float?    @map("title_x") // X coordinate for title text on PDF
+  titleY         Float?    @map("title_y") // Y coordinate for title text on PDF
+  titleWidth     Float?    @map("title_width") // Width of title box on PDF
+  titleHeight    Float?    @map("title_height") // Height of title box on PDF
+  dateX          Float?    @map("date_x") // X coordinate for date on PDF
+  dateY          Float?    @map("date_y") // Y coordinate for date on PDF
+  dateWidth      Float?    @map("date_width") // Width of date box on PDF
+  dateHeight     Float?    @map("date_height") // Height of date box on PDF
+  ipAddress      String?   @map("ip_address") @db.NVarChar(45)
+  userAgent      String?   @map("user_agent") @db.NVarChar(500)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  afe  Afe  @relation(fields: [afeId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  // Ensure each user can only be assigned once per AFE
+  // Ensure signing order is unique per AFE
+  @@unique([afeId, userId])
+  @@unique([afeId, signingOrder])
+  @@map("afe_signers")
+}
+
+// Audit log for tracking all system actions
+model AuditLog {
+  id         String   @id @default(uuid()) @map("audit_id") @db.UniqueIdentifier
+  entityType String   @map("entity_type") @db.NVarChar(50)
+  entityId   String   @map("entity_id") @db.NVarChar(255)
+  action     String   @db.NVarChar(100)
+  userId     String?  @map("user_id") @db.UniqueIdentifier
+  ipAddress  String?  @map("ip_address") @db.NVarChar(45)
+  userAgent  String?  @map("user_agent") @db.NVarChar(500)
+  metadata   String?  @db.NVarChar(Max) // JSON stored as string
+  timestamp  DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([entityType, entityId])
+  @@index([timestamp])
+  @@map("audit_log")
+}
