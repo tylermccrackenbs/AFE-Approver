@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -15,7 +16,6 @@ import {
 import { AfeStatusBadge, AfeProgress } from "@/components/afe/afe-status-badge";
 import { Skeleton, SkeletonTable } from "@/components/ui/skeleton";
 import { formatDate } from "@/lib/utils";
-import { MOCK_USER } from "@/lib/auth";
 import {
   Plus,
   FileText,
@@ -60,7 +60,8 @@ const statusFilters = [
 ];
 
 export default function AfeListPage() {
-  const user = MOCK_USER;
+  const { data: session } = useSession();
+  const user = session?.user;
   const [afes, setAfes] = useState<AfeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -88,7 +89,7 @@ export default function AfeListPage() {
     }
   };
 
-  const isAdmin = user.role === "ADMIN";
+  const isAdmin = user?.role === "ADMIN";
 
   // Filter AFEs by search query
   const filteredAfes = afes.filter((afe) => {

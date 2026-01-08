@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AfeStatusBadge } from "@/components/afe/afe-status-badge";
 import { formatDate } from "@/lib/utils";
-import { MOCK_USER } from "@/lib/auth";
 import { Skeleton, SkeletonAfeCard } from "@/components/ui/skeleton";
 import {
   FileText,
@@ -41,15 +41,18 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
-  const user = MOCK_USER;
+  const { data: session } = useSession();
+  const user = session?.user;
   const [pendingAfes, setPendingAfes] = useState<AfeItem[]>([]);
   const [recentAfes, setRecentAfes] = useState<AfeItem[]>([]);
   const [stats, setStats] = useState<DashboardStats>({ draft: 0, pending: 0, completed: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (user) {
+      fetchDashboardData();
+    }
+  }, [user]);
 
   const fetchDashboardData = async () => {
     try {
@@ -61,7 +64,7 @@ export default function DashboardPage() {
         // Filter to AFEs where current user is an active signer
         const pending = allAfes.filter((afe: AfeItem) =>
           afe.signers.some(
-            (s) => s.user.id === user.id && s.status === "ACTIVE"
+            (s) => s.user.id === user?.id && s.status === "ACTIVE"
           )
         );
         setPendingAfes(pending);
@@ -85,7 +88,7 @@ export default function DashboardPage() {
     }
   };
 
-  const isAdmin = user.role === "ADMIN";
+  const isAdmin = user?.role === "ADMIN";
 
   const statCards = [
     {
@@ -127,7 +130,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Welcome back, {user.name.split(' ')[0]}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Welcome back, {user?.name?.split(' ')[0] || 'User'}</h1>
           <p className="text-muted-foreground mt-1">
             Here&apos;s what&apos;s happening with your AFE approvals
           </p>
