@@ -57,7 +57,11 @@ const createUserSchema = z.object({
 
 // POST /api/users - Create a new user
 export async function POST(req: NextRequest) {
-  const currentUser = getCurrentUser();
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   try {
     const body = await req.json();
@@ -129,7 +133,11 @@ const updateUserSchema = z.object({
 
 // PATCH /api/users - Update user role
 export async function PATCH(req: NextRequest) {
-  const currentUser = getCurrentUser();
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("id");
@@ -220,7 +228,11 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE /api/users - Delete a user
 export async function DELETE(req: NextRequest) {
-  const currentUser = getCurrentUser();
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("id");

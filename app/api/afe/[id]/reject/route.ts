@@ -15,7 +15,12 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const user = getCurrentUser();
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const afeId = params.id;
   const ipAddress = getClientIp(req.headers);
   const userAgent = getUserAgent(req.headers);
@@ -105,7 +110,7 @@ export async function POST(
   await sendNotification("AFE_REJECTED", afe.createdBy.email, {
     afeName: afe.afeName,
     afeId: afe.id,
-    rejectedBy: user.name || user.email,
+    rejectedBy: user.name ?? user.email ?? "Unknown user",
     rejectReason: reason,
   });
 

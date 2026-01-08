@@ -7,7 +7,11 @@ import { z } from "zod";
 
 // GET /api/users/signature - Get current user's signature
 export async function GET() {
-  const currentUser = getCurrentUser();
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const user = await prisma.user.findUnique({
     where: { id: currentUser.id },
@@ -29,7 +33,12 @@ const saveSignatureSchema = z.object({
 
 // POST /api/users/signature - Save user's signature
 export async function POST(req: NextRequest) {
-  const currentUser = getCurrentUser();
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const ipAddress = getClientIp(req.headers);
   const userAgent = getUserAgent(req.headers);
 
@@ -80,7 +89,12 @@ export async function POST(req: NextRequest) {
 
 // DELETE /api/users/signature - Remove user's signature
 export async function DELETE(req: NextRequest) {
-  const currentUser = getCurrentUser();
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const ipAddress = getClientIp(req.headers);
   const userAgent = getUserAgent(req.headers);
 

@@ -4,6 +4,7 @@ import { logAudit } from "@/lib/audit";
 import { sendNotification } from "@/lib/email";
 import { generateFinalPdf } from "@/lib/pdf";
 import { getCurrentUser } from "@/lib/auth";
+import { readPdf } from "@/lib/storage";
 import { getClientIp, getUserAgent } from "@/lib/utils";
 import { z } from "zod";
 
@@ -23,7 +24,12 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const user = getCurrentUser();
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const afeId = params.id;
   const ipAddress = getClientIp(req.headers);
   const userAgent = getUserAgent(req.headers);
@@ -161,9 +167,19 @@ export async function POST(
   });
 
   if (result.nextSigner) {
+    // Read the PDF to attach to the email
+    let pdfBuffer: Buffer | undefined;
+    try {
+      pdfBuffer = await readPdf(afe.originalPdfUrl);
+    } catch (err) {
+      console.error("Failed to read PDF for email attachment:", err);
+    }
+
     await sendNotification("SIGNER_ACTIVATED", result.nextSigner.user.email, {
       afeName: afe.afeName,
       afeId: afe.id,
+      pdfBuffer,
+      pdfFilename: `${afe.afeName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`,
     });
   }
 

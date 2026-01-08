@@ -14,7 +14,11 @@ const createAfeSchema = z.object({
 
 // GET /api/afe - List AFEs
 export async function GET(req: NextRequest) {
-  const user = getCurrentUser();
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
@@ -62,7 +66,11 @@ export async function GET(req: NextRequest) {
 
 // POST /api/afe - Create new AFE
 export async function POST(req: NextRequest) {
-  const user = getCurrentUser();
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   try {
     const body = await req.json();

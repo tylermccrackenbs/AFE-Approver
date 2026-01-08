@@ -20,6 +20,8 @@ interface NotificationData {
   signerName?: string;
   rejectedBy?: string;
   rejectReason?: string;
+  pdfBuffer?: Buffer;
+  pdfFilename?: string;
 }
 
 /**
@@ -128,13 +130,27 @@ export async function sendNotification(
   }
 
   try {
-    await sgMail.send({
+    const msg: sgMail.MailDataRequired = {
       to,
       from: FROM_EMAIL,
       subject,
       html,
-    });
-    console.log(`[Email] Sent ${type} to ${to}`);
+    };
+
+    // Add PDF attachment if provided
+    if (data.pdfBuffer && data.pdfFilename) {
+      msg.attachments = [
+        {
+          content: data.pdfBuffer.toString("base64"),
+          filename: data.pdfFilename,
+          type: "application/pdf",
+          disposition: "attachment",
+        },
+      ];
+    }
+
+    await sgMail.send(msg);
+    console.log(`[Email] Sent ${type} to ${to}${data.pdfBuffer ? " (with attachment)" : ""}`);
   } catch (error) {
     console.error(`[Email] Failed to send ${type} to ${to}:`, error);
     // Don't throw - email failure shouldn't break the main flow
