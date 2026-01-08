@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +12,6 @@ import { RejectDialog } from "@/components/afe/sign-dialog";
 import { SignaturePlacement } from "@/components/afe/signature-placement";
 import { PdfViewer } from "@/components/afe/pdf-viewer";
 import { formatDateTime } from "@/lib/utils";
-import { MOCK_USER } from "@/lib/auth";
 import { toast } from "@/components/ui/use-toast";
 import {
   ArrowLeft,
@@ -69,7 +69,8 @@ interface AfeDetails {
 }
 
 export default function AfeViewerPage() {
-  const user = MOCK_USER;
+  const { data: session } = useSession();
+  const user = session?.user;
   const params = useParams();
   const router = useRouter();
   const [afe, setAfe] = useState<AfeDetails | null>(null);
@@ -238,9 +239,9 @@ export default function AfeViewerPage() {
     );
   }
 
-  const isAdmin = user.role === "ADMIN";
+  const isAdmin = user?.role === "ADMIN";
   const currentUserSigner = afe.signers.find(
-    (s) => s.user.id === user.id
+    (s) => s.user.id === user?.id
   );
   const isActiveSigner = currentUserSigner?.status === "ACTIVE";
   const canEdit = isAdmin && afe.status === "DRAFT";
@@ -417,7 +418,7 @@ export default function AfeViewerPage() {
               ) : (
                 <SignerList
                   signers={afe.signers}
-                  currentUserId={user.id}
+                  currentUserId={user?.id}
                 />
               )}
             </CardContent>

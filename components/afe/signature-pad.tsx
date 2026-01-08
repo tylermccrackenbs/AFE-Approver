@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import SignatureCanvas from "react-signature-canvas";
 import { Button } from "@/components/ui/button";
 import { Eraser, Check, RotateCcw } from "lucide-react";
@@ -15,12 +15,28 @@ interface SignaturePadProps {
 export function SignaturePad({
   onSignatureChange,
   initialSignature,
-  width = 400,
+  width,
   height = 150,
 }: SignaturePadProps) {
   const sigCanvas = useRef<SignatureCanvas>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isEmpty, setIsEmpty] = useState(true);
   const [useSaved, setUseSaved] = useState(!!initialSignature);
+  const [canvasWidth, setCanvasWidth] = useState(width || 400);
+
+  // Resize canvas to fit container
+  const updateCanvasSize = useCallback(() => {
+    if (containerRef.current && !width) {
+      const containerWidth = containerRef.current.offsetWidth;
+      setCanvasWidth(Math.max(containerWidth - 4, 280)); // min 280px, subtract border
+    }
+  }, [width]);
+
+  useEffect(() => {
+    updateCanvasSize();
+    window.addEventListener("resize", updateCanvasSize);
+    return () => window.removeEventListener("resize", updateCanvasSize);
+  }, [updateCanvasSize]);
 
   useEffect(() => {
     // If we have an initial signature and want to use it, notify parent
@@ -117,14 +133,14 @@ export function SignaturePad({
         </div>
       </div>
 
-      <div className="border-2 border-dashed rounded-lg bg-white overflow-hidden">
+      <div ref={containerRef} className="border-2 border-dashed rounded-lg bg-white overflow-hidden touch-none">
         <SignatureCanvas
           ref={sigCanvas}
           canvasProps={{
-            width,
+            width: canvasWidth,
             height,
-            className: "signature-canvas",
-            style: { width: "100%", height: `${height}px` },
+            className: "signature-canvas touch-none",
+            style: { width: "100%", height: `${height}px`, touchAction: "none" },
           }}
           backgroundColor="rgba(255,255,255,0)"
           penColor="black"
