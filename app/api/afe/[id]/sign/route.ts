@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
-import { sendNotification } from "@/lib/email";
+import { sendNotification, sendBulkNotification, getCompletionGroupEmails } from "@/lib/email";
 import { generateFinalPdf } from "@/lib/pdf";
 import { getCurrentUser } from "@/lib/auth";
 import { readPdf } from "@/lib/storage";
@@ -184,16 +184,43 @@ export async function POST(
   }
 
   if (result.newAfeStatus === "FULLY_SIGNED") {
+    let finalPdfUrl: string | undefined;
     try {
-      await generateFinalPdf(afeId);
+      finalPdfUrl = await generateFinalPdf(afeId);
     } catch (error) {
       console.error("Failed to generate final PDF:", error);
     }
 
-    await sendNotification("AFE_FULLY_SIGNED", afe.createdBy.email, {
+    // Read the signed PDF for email attachment
+    let signedPdfBuffer: Buffer | undefined;
+    if (finalPdfUrl) {
+      try {
+        signedPdfBuffer = await readPdf(finalPdfUrl);
+      } catch (err) {
+        console.error("Failed to read signed PDF for email attachment:", err);
+      }
+    }
+
+    const pdfFilename = `${afe.afeName.replace(/[^a-zA-Z0-9]/g, "_")}_SIGNED.pdf`;
+
+    // Get distribution group recipients
+    const completionGroupEmails = getCompletionGroupEmails();
+
+    // Combine creator + distribution group (deduplicate)
+    const allRecipients = [
+      afe.createdBy.email,
+      ...completionGroupEmails,
+    ].filter((email, index, arr) => arr.indexOf(email) === index);
+
+    // Send completion notification with signed PDF to all recipients
+    await sendBulkNotification("AFE_FULLY_SIGNED", allRecipients, {
       afeName: afe.afeName,
       afeId: afe.id,
+      pdfBuffer: signedPdfBuffer,
+      pdfFilename,
     });
+
+    console.log(`[AFE] Sent completion notification for "${afe.afeName}" to ${allRecipients.length} recipients`);
   }
 
   return NextResponse.json({

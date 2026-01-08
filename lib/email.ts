@@ -8,6 +8,15 @@ if (process.env.SENDGRID_API_KEY) {
 const APP_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
 const FROM_EMAIL = process.env.EMAIL_FROM || "noreply@example.com";
 
+/**
+ * Get the list of emails from the AFE completion distribution group
+ */
+export function getCompletionGroupEmails(): string[] {
+  const groupEnv = process.env.AFE_COMPLETION_GROUP;
+  if (!groupEnv) return [];
+  return groupEnv.split(",").map((email) => email.trim()).filter(Boolean);
+}
+
 export type NotificationType =
   | "SIGNER_ACTIVATED"
   | "AFE_FULLY_SIGNED"
@@ -64,18 +73,18 @@ export async function sendNotification(
       break;
 
     case "AFE_FULLY_SIGNED":
-      subject = `AFE "${data.afeName}" Has Been Fully Signed`;
+      subject = `AFE "${data.afeName}" Has Been Fully Approved`;
       html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">AFE Fully Signed</h2>
+          <h2 style="color: #28a745;">AFE Fully Approved</h2>
           <p>Hello,</p>
-          <p>The AFE <strong>"${data.afeName}"</strong> has been signed by all required parties.</p>
-          <p>The final signed document is now available for download.</p>
+          <p>The AFE <strong>"${data.afeName}"</strong> has been signed by all required parties and is now fully approved.</p>
+          ${data.pdfBuffer ? `<p>The signed document is attached to this email for your records.</p>` : `<p>The final signed document is now available for download.</p>`}
           <p style="margin: 24px 0;">
             <a href="${signUrl}"
                style="background-color: #28a745; color: white; padding: 12px 24px;
                       text-decoration: none; border-radius: 4px; display: inline-block;">
-              View Signed Document
+              View in System
             </a>
           </p>
           <p style="color: #666; font-size: 14px;">
