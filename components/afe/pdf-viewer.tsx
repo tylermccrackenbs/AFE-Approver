@@ -67,10 +67,11 @@ export function PdfViewer({ url, downloadUrl, filename = "document.pdf" }: PdfVi
       </div>
 
       {/* PDF Display using iframe */}
-      <div className="flex-1 bg-gray-100 min-h-[600px]">
+      <div className="flex-1 bg-gray-100">
         <iframe
           src={url}
-          className="w-full h-[600px] border-0"
+          className="w-full border-0"
+          style={{ height: "calc(100vh - 180px)", minHeight: "600px" }}
           title={filename}
           onError={() => setError(true)}
         />

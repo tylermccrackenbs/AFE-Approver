@@ -309,9 +309,9 @@ export default function AfeViewerPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-4 lg:grid-cols-3 gap-6">
         {/* PDF Viewer */}
-        <div className="lg:col-span-2">
+        <div className="xl:col-span-3 lg:col-span-2">
           {(() => {
             const hasSignedSigners = afe.signers.some((s) => s.status === "SIGNED");
             // Add timestamp to bust cache when signatures change
@@ -334,7 +334,7 @@ export default function AfeViewerPage() {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className="space-y-6 lg:sticky lg:top-4 lg:self-start">
           {/* Actions */}
           {isActiveSigner && (
             <Card className="border-primary">
